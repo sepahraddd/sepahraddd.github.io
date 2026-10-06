@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>پرده — ساخت ارائه با هوش مصنوعی</title>
+<meta name="description" content="موضوع را بنویس؛ پرده ساختار، متن و طراحی اسلایدها را می‌سازد. خروجی PPTX و PDF.">
+<meta name="theme-color" content="#050908">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+html,body{margin:0}
+[hidden]{display:none!important}
+/* Layout: full-bleed animated 3D slide-field behind a centered stage; prompt console is the hero object, live deck preview below. */
+:root{
+  --bg:#050908;
+  --bg-2:#0a1210;
+  --surface:rgba(16,28,24,.62);
+  --surface-2:rgba(22,38,33,.78);
+  --line:rgba(120,255,200,.10);
+  --line-2:rgba(120,255,200,.22);
+  --fg:#e9f3ef;
+  --muted:#8ea69d;
+  --dim:#5b7169;
+  --accent:#34f0a5;
+  --accent-2:#7af5d0;
+  --accent-ink:#04140d;
+  --glow:rgba(52,240,165,.35);
+  --font-display:"Vazirmatn",Tahoma,"Segoe UI",sans-serif;
+  --font-body:"Vazirmatn",Tahoma,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --r:18px;
+  color-scheme:dark;
+}
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.7;overflow-x:hidden}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 80% 70% at 50% 35%,transparent 40%,rgba(0,0,0,.65) 100%)}
+.wrap{position:relative;z-index:2;overflow-x:clip;padding-inline:20px;padding-block:0 60px}
+.inner{max-width:1120px;margin-inline:auto}
+
+/* nav */
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin-inline:-20px;padding:14px 20px;
+  backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);
+  background:linear-gradient(to bottom,rgba(5,9,8,.85),rgba(5,9,8,.4));border-bottom:1px solid var(--line)}
+.nav-in{max-width:1120px;margin-inline:auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px;letter-spacing:-.5px}
+.mark{width:34px;height:34px;border-radius:10px;position:relative;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--accent),#0fae74);box-shadow:0 0 24px var(--glow),inset 0 1px 0 rgba(255,255,255,.4)}
+.mark i{position:absolute;width:16px;height:11px;border:2px solid var(--accent-ink);border-radius:3px}
+.mark i:nth-child(1){transform:translate(3px,3px);opacity:.45}
+.mark i:nth-child(2){transform:translate(-2px,-2px);background:var(--accent)}
+.navlinks{display:flex;gap:6px;align-items:center}
+.navlinks a{color:var(--muted);text-decoration:none;font-size:14px;padding:6px 12px;border-radius:999px;transition:.2s}
+.navlinks a:hover,.navlinks a:focus-visible{color:var(--fg);background:var(--line)}
+.btn-ghost{border:1px solid var(--line-2)!important;color:var(--fg)!important}
+@media (max-width:640px){.navlinks a:not(.btn-ghost){display:none}}
+
+/* hero */
+.hero{text-align:center;padding-block:72px 28px;display:flex;flex-direction:column;align-items:center;gap:22px}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:6px 14px 6px 8px;border-radius:999px;border:1px solid var(--line-2);
+  background:rgba(10,20,17,.7);font-size:13px;color:var(--muted);backdrop-filter:blur(8px)}
+.pill b{font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--accent-ink);background:var(--accent);padding:2px 8px;border-radius:999px;letter-spacing:.5px}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.3}}
+h1{font-family:var(--font-display);font-weight:900;font-size:clamp(44px,8.4vw,108px);line-height:1.08;margin:0;letter-spacing:-1.5px;text-wrap:balance}
+h1 .l1{display:block;color:var(--fg);text-shadow:0 10px 60px rgba(0,0,0,.6)}
+h1 .l2{display:block;background:linear-gradient(100deg,#1fd18d 0%,var(--accent-2) 30%,#ffffff 45%,var(--accent) 60%,#14b97c 100%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 7s ease-in-out infinite;
+  filter:drop-shadow(0 0 40px rgba(52,240,165,.25))}
+@keyframes shine{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+.lede{max-width:560px;color:var(--muted);font-size:clamp(15px,1.8vw,18px);margin:0;text-wrap:balance}
+.lede strong{color:var(--fg);font-weight:500}
+
+/* console */
+.console{width:100%;max-width:860px;margin-top:14px;position:relative;border-radius:24px;padding:1.5px;
+  background:conic-gradient(from var(--ang),transparent 0 60%,var(--accent) 72%,var(--accent-2) 78%,transparent 90%) border-box;
+  animation:spin 6s linear infinite}
+.console::before{content:"";position:absolute;inset:-30px;z-index:-1;background:radial-gradient(closest-side,rgba(52,240,165,.18),transparent);filter:blur(20px)}
+@keyframes spin{to{--ang:360deg}}
+.console-in{border-radius:23px;background:linear-gradient(180deg,rgba(14,26,22,.94),rgba(8,15,13,.96));border:1px solid var(--line);padding:18px;text-align:right}
+.inputrow{display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 8px}
+.inputrow:focus-within{border-color:var(--line-2);box-shadow:0 0 0 4px rgba(52,240,165,.08)}
+.spark{width:40px;height:40px;flex:none;display:grid;place-items:center;color:var(--accent)}
+#topic{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--fg);font:500 16px/1.5 var(--font-body);padding:8px 0}
+#topic::placeholder{color:var(--dim)}
+.go{flex:none;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;font:700 15px var(--font-body);color:var(--accent-ink);
+  background:linear-gradient(180deg,#5cf7b9,var(--accent));padding:12px 20px;border-radius:12px;box-shadow:0 8px 30px -6px var(--glow),inset 0 1px 0 rgba(255,255,255,.5);transition:transform .15s,box-shadow .2s}
+.go:hover{transform:translateY(-1px);box-shadow:0 12px 40px -6px var(--glow),inset 0 1px 0 rgba(255,255,255,.5)}
+.go:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.go[disabled]{opacity:.7;cursor:progress}
+kbd{font-family:var(--font-mono);font-size:11px;padding:2px 6px;border-radius:6px;background:rgba(4,20,13,.25);border:1px solid rgba(4,20,13,.3)}
+@media (max-width:560px){.go kbd{display:none}.spark{display:none}.go{padding:12px 14px}}
+
+.opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+@media (max-width:820px){.opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.opts{grid-template-columns:1fr}}
+.opt{border:1px solid var(--line);border-radius:14px;padding:10px 12px 12px;background:rgba(255,255,255,.015);min-width:0}
+.opt-l{font-size:11.5px;color:var(--dim);letter-spacing:.3px;margin-bottom:8px;display:flex;justify-content:space-between}
+.opt-l span{font-family:var(--font-mono);color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--muted);font:500 13px var(--font-body);padding:5px 11px;border-radius:9px;transition:.15s}
+.chip:hover{color:var(--fg);border-color:var(--line-2)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chip[aria-pressed="true"]{color:var(--accent-ink);background:var(--accent);border-color:var(--accent);font-weight:700;box-shadow:0 0 18px -4px var(--glow)}
+.chip.num{font-family:var(--font-mono);min-width:38px;text-align:center}
+.hint{margin:12px 4px 0;font-size:12.5px;color:var(--dim);display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+.hint .ex{color:var(--muted);cursor:pointer;border-bottom:1px dashed var(--dim);background:none;border-top:0;border-inline:0;font:inherit;padding:0}
+.hint .ex:hover{color:var(--accent)}
+
+/* stats ribbon */
+.ribbon{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;max-width:860px;width:100%;margin-top:10px;border-radius:16px;overflow:hidden;
+  background:var(--line);border:1px solid var(--line)}
+.ribbon div{background:rgba(7,13,11,.82);padding:14px 10px;text-align:center}
+.ribbon b{display:block;font-family:var(--font-mono);font-size:20px;color:var(--fg);font-weight:600}
+.ribbon b em{font-style:normal;color:var(--accent)}
+.ribbon small{color:var(--dim);font-size:12px}
+@media (max-width:420px){.ribbon b{font-size:16px}}
+
+/* studio */
+.studio{margin-top:70px;scroll-margin-top:84px}
+.sec-h{display:flex;align-items:end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:2px;color:var(--accent);text-transform:uppercase}
+h2{font-family:var(--font-display);font-weight:900;font-size:clamp(28px,4vw,44px);line-height:1.2;margin:4px 0 0;letter-spacing:-.5px;text-wrap:balance}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;padding:7px 12px 7px 14px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--dim);background:rgba(7,13,11,.7);transition:.3s}
+.step i{font-style:normal;font-family:var(--font-mono);font-size:11px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line-2)}
+.step.on{color:var(--fg);border-color:var(--line-2)}
+.step.on i{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.step.run i{animation:pulse 1s infinite}
+
+.board{display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px}
+@media (max-width:860px){.board{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);min-width:0}
+.outline{padding:16px}
+.outline h3,.deck-h h3{margin:0;font-size:14px;font-weight:700}
+.meta{font-family:var(--font-mono);font-size:11px;color:var(--dim)}
+.ol{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:430px;overflow:auto}
+.ol li{display:grid;grid-template-columns:28px 1fr;gap:8px;padding:8px;border-radius:10px;font-size:13.5px;color:var(--muted);align-items:baseline;
+  animation:fadeup .4s both}
+.ol li b{font-family:var(--font-mono);font-size:11px;color:var(--dim);font-weight:400}
+.ol li:hover{background:rgba(255,255,255,.03);color:var(--fg)}
+.ol li.cur{background:rgba(52,240,165,.08);color:var(--fg)}
+.ol li.cur b{color:var(--accent)}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}}
+
+.deck{padding:16px}
+.deck-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.exports{display:flex;gap:6px}
+.xbtn{cursor:pointer;font:600 12px var(--font-mono);color:var(--fg);background:rgba(255,255,255,.03);border:1px solid var(--line-2);padding:7px 12px;border-radius:9px;display:inline-flex;gap:6px;align-items:center}
+.xbtn:hover{border-color:var(--accent);color:var(--accent)}
+.xbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+
+/* features */
+.feats{margin-top:80px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:860px){.feats{grid-template-columns:1fr}}
+.feat{position:relative;padding:22px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);overflow:hidden;min-width:0}
+.feat::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),rgba(52,240,165,.13),transparent 70%)}
+.feat:hover::after{opacity:1}
+.feat .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;border:1px solid var(--line-2);color:var(--accent);background:rgba(52,240,165,.06);margin-bottom:14px}
+.feat h4{margin:0 0 6px;font-size:17px;font-weight:700}
+.feat p{margin:0;color:var(--muted);font-size:14px}
+.feat .tag{display:inline-block;margin-top:14px;font:500 11px var(--font-mono);color:var(--dim);border:1px solid var(--line);padding:3px 8px;border-radius:6px}
+
+footer{margin-top:80px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:13px}
+footer .mono{font-family:var(--font-mono)}
+
+.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translate(-50%,20px);opacity:0;z-index:50;
+  background:var(--surface-2);border:1px solid var(--line-2);color:var(--fg);padding:10px 16px;border-radius:12px;font-size:14px;backdrop-filter:blur(10px);transition:.3s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.reveal{animation:rise .9s cubic-bezier(.2,.8,.2,1) both}
+.d1{animation-delay:.08s}.d2{animation-delay:.18s}.d3{animation-delay:.3s}.d4{animation-delay:.42s}.d5{animation-delay:.55s}
+@keyframes rise{from{opacity:.001;transform:translateY(22px);filter:blur(6px)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition:none!important}
+}
+/* editor */
+.board{grid-template-columns:280px minmax(0,1fr)}
+.ol li{cursor:pointer}
+.main{padding:16px;display:flex;flex-direction:column;gap:14px}
+.view{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:14px;overflow:hidden;border:1px solid var(--line-2);background:#07110e;box-shadow:0 30px 80px -30px rgba(0,0,0,.9),0 0 0 1px rgba(52,240,165,.05)}
+.view:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.sxbox{position:absolute;inset:0}
+.sxbox>.sx{position:absolute;top:0;left:0;transform-origin:0 0;transform:scale(var(--k,.3))}
+.view .sx{animation:slidein .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes slidein{from{opacity:0;filter:blur(6px)}}
+.vrow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.vrow .notes{flex:1;min-width:0}
+.vnav{display:flex;gap:6px;flex:none}
+.vnav button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line-2);background:rgba(5,9,8,.7);color:var(--fg);cursor:pointer;backdrop-filter:blur(6px);font-size:16px}
+.vnav button:hover{border-color:var(--accent);color:var(--accent)}
+.vnav button:focus-visible{outline:2px solid var(--accent)}
+.busy{position:absolute;inset:0;z-index:4;display:grid;place-items:center;background:rgba(5,9,8,.62);backdrop-filter:blur(5px)}
+.busy>div{display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--fg);font-size:15px}
+.busy .ring2{width:46px;height:46px;border-radius:50%;border:3px solid rgba(52,240,165,.15);border-top-color:var(--accent);animation:rot 1s linear infinite}
+.busy small{font-family:var(--font-mono);color:var(--muted);font-size:12px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.notes{font-size:13.5px;color:var(--muted);border-inline-start:2px solid var(--line-2);padding-inline-start:12px;min-height:22px}
+.notes b{color:var(--dim);font-weight:500;margin-inline-end:6px}
+.strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.th{position:relative;flex:none;width:150px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:#07110e;padding:0;transition:border-color .2s,transform .2s}
+.th:hover{transform:translateY(-2px)}
+.th.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 20px -6px var(--glow)}
+.th:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.th .sx{pointer-events:none}
+.th.skel{background:linear-gradient(100deg,#0b1714 30%,#14261f 50%,#0b1714 70%);background-size:300% 100%;animation:skel 1.2s linear infinite;cursor:default}
+@keyframes skel{to{background-position:-150% 0}}
+.chat{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:14px;padding:6px}
+.chat:focus-within{border-color:var(--line-2)}
+.chat input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--fg);font:500 14.5px var(--font-body);padding:8px 10px}
+.chat input::placeholder{color:var(--dim)}
+.chat .send{border:0;cursor:pointer;border-radius:10px;padding:9px 14px;font:700 13.5px var(--font-body);background:var(--accent);color:var(--accent-ink)}
+.chat .send[disabled]{opacity:.6;cursor:progress}
+.undo{border:1px solid var(--line-2);background:none;color:var(--muted);cursor:pointer;border-radius:10px;padding:8px 12px;font:500 13px var(--font-body)}
+.undo:hover:not([disabled]){color:var(--fg)}
+.undo[disabled]{opacity:.35;cursor:default}
+.sugg{display:flex;gap:6px;flex-wrap:wrap}
+.sugg button{border:1px dashed var(--line-2);background:none;color:var(--muted);font:500 12.5px var(--font-body);padding:4px 10px;border-radius:999px;cursor:pointer}
+.sugg button:hover{color:var(--accent);border-color:var(--accent)}
+.badge{font:500 11px var(--font-mono);color:var(--accent-ink);background:#d9b84a;padding:1px 7px;border-radius:5px;margin-inline-start:8px;vertical-align:middle}
+.timer{font-family:var(--font-mono)}
+.xbtn[disabled]{opacity:.5;cursor:progress}
+#pdfstage{position:fixed;left:-20000px;top:0;width:1280px;height:720px;overflow:hidden}
+
+/* ---------- slide design (1280x720, shared by preview + PDF) ---------- */
+.sx{width:1280px;height:720px;position:relative;overflow:hidden;box-sizing:border-box;background:#07110e;color:#eaf4f0;font-family:"Vazirmatn",Tahoma,sans-serif;padding:72px 84px 0;display:flex;flex-direction:column;text-align:start;line-height:1.5}
+.sx *{box-sizing:border-box}
+.sx-kicker{width:58px;height:7px;background:#34f0a5;border-radius:4px;margin-bottom:22px;flex:none}
+.sx-title{font-size:48px;font-weight:900;margin:0 0 38px;line-height:1.3;letter-spacing:0;color:#eaf4f0}
+.sx-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:20px;font-size:29px;line-height:1.55;color:#dce9e4}
+.sx-list li{display:flex;gap:20px;align-items:baseline}
+.sx-list li::before,.sx-card li::before{content:"";flex:none;width:12px;height:12px;background:#34f0a5;border-radius:2px;transform:translateY(-5px)}
+.sx-foot{position:absolute;left:84px;right:84px;bottom:26px;border-top:1px solid #1c3a30;padding-top:14px;display:flex;justify-content:space-between;font-size:16px;color:#9bb3aa}
+.sx-two{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+.sx-card{background:#0f1f1a;border:1px solid #1c3a30;border-radius:20px;padding:32px 34px;min-height:340px}
+.sx-card h3{margin:0 0 20px;font-size:31px;color:#34f0a5;font-weight:700}
+.sx-card ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;font-size:23px;line-height:1.55}
+.sx-card li{display:flex;gap:16px;align-items:baseline}
+.sx-card li::before{width:9px;height:9px;transform:translateY(-4px)}
+.sx-stats{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:28px;margin-top:24px}
+.sx-stat{background:#0f1f1a;border:1px solid #1c3a30;border-radius:20px;padding:46px 24px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+.sx-stat b{font-size:78px;font-weight:900;color:#34f0a5;line-height:1.1}
+.sx-stat span{font-size:23px;color:#9bb3aa;line-height:1.5}
+.sx-quote{display:flex;flex-direction:column;gap:18px;margin-top:-10px}
+.sx-qm{font-family:Georgia,serif;font-size:170px;line-height:.7;color:#34f0a5;height:90px}
+.sx-quote blockquote{margin:0;font-size:42px;font-weight:500;line-height:1.6;max-width:1050px}
+.sx-quote cite{font-style:normal;font-size:24px;color:#9bb3aa}
+.sx-chart{display:flex;gap:40px;height:380px;padding:0 10px}
+.sx-col{flex:1;display:flex;flex-direction:column;gap:14px;min-width:0}
+.sx-ba{position:relative;flex:1;border-bottom:2px solid #1c3a30}
+.sx-ba i{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(120px,80%);border-radius:10px 10px 0 0;background:linear-gradient(to top,#127a53,#34f0a5)}
+.sx-ba em{position:absolute;left:0;right:0;text-align:center;font-style:normal;font-size:24px;font-weight:700;color:#eaf4f0}
+.sx-col>span{text-align:center;font-size:21px;color:#9bb3aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sx-unit{margin-top:14px;font-size:16px;color:#5f7a70}
+.sx-orb{position:absolute;width:820px;height:820px;border-radius:50%;top:-420px;inset-inline-end:-260px;background:radial-gradient(circle,rgba(52,240,165,.38),rgba(52,240,165,0) 65%)}
+.sx-orb.b{top:auto;bottom:-520px;inset-inline-end:auto;left:230px}
+.sx-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(52,240,165,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(52,240,165,.06) 1px,transparent 1px);background-size:64px 64px;-webkit-mask:linear-gradient(to bottom,#000,transparent 80%);mask:linear-gradient(to bottom,#000,transparent 80%)}
+.sx-cover{padding:0;justify-content:center}
+.sx-cover-in{position:relative;padding:0 100px;display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+.sx-tag{font-size:20px;font-weight:700;color:#34f0a5}
+.sx[dir=ltr] .sx-tag{letter-spacing:5px}
+.sx-cover h1,.sx-close h1{margin:0;font-size:78px;font-weight:900;line-height:1.25;max-width:1050px}
+.sx-cover p,.sx-close p{margin:0;font-size:30px;color:#9bb3aa;max-width:950px;line-height:1.6}
+.sx-bar{width:120px;height:8px;border-radius:4px;background:#34f0a5;margin-top:10px}
+.sx-close{padding:0;justify-content:center}
+.sx-close-in{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:22px;padding:0 120px}
+.sx-close h1{font-size:66px}
+@media (max-width:860px){.board{grid-template-columns:1fr}.outline .ol{max-height:220px}}
+
+.err{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:16px;background:rgba(5,9,8,.88);backdrop-filter:blur(6px);text-align:center}
+.err>div{max-width:420px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.err b{font-size:18px;color:#f0a35e}
+.err p{margin:0;color:var(--fg);font-size:14.5px}
+.err small{font:12px/1.5 var(--font-mono);color:var(--muted);word-break:break-word;max-width:100%}
+.keymsg{word-break:break-word}
+.erract{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.err .send{border:0;cursor:pointer;border-radius:10px;padding:9px 16px;font:700 13.5px var(--font-body);background:var(--accent);color:var(--accent-ink)}
+/* key */
+.keybtn{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:500 14px var(--font-body);color:var(--fg);background:none;border:1px solid var(--line-2);padding:6px 14px;border-radius:999px}
+.keybtn:hover{border-color:var(--accent)}
+.keybtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kdot{width:8px;height:8px;border-radius:50%;background:#e0a84a;box-shadow:0 0 8px #e0a84a}
+.keybtn.ok .kdot{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.dlg{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(2,5,4,.7);backdrop-filter:blur(6px)}
+.dlg-in{width:100%;max-width:460px;background:linear-gradient(180deg,#0f1d19,#0a1411);border:1px solid var(--line-2);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 40px 100px -20px #000;animation:fadeup .25s both}
+.dlg-in h3{margin:0;font-size:20px;font-weight:900}
+.dlg-in p{margin:0;color:var(--muted);font-size:14px}
+.dlg-in .small{font-size:13px}
+.dlg-in a{color:var(--accent)}
+.dlg-in label{font-size:13px;color:var(--dim)}
+.keyrow{display:flex;gap:8px}
+.keyrow input{flex:1;min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--line-2);border-radius:10px;color:var(--fg);font:500 14px var(--font-mono);padding:10px 12px;outline:0}
+.keyrow input:focus{border-color:var(--accent)}
+.keymsg{min-height:20px;font-size:13px;color:#f0a35e}
+.dlg-act{display:flex;gap:8px;flex-wrap:wrap}
+.dlg .send{border:0;cursor:pointer;border-radius:10px;padding:9px 18px;font:700 14px var(--font-body);background:var(--accent);color:var(--accent-ink)}
+.keyrow input::placeholder{font-family:var(--font-body);color:var(--dim)}
+.undo.danger{color:#f08a7a;border-color:rgba(240,138,122,.4);margin-inline-start:auto}
+
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="wrap" dir="rtl" lang="fa">
+  <nav>
+    <div class="nav-in">
+      <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i></span>پرده</div>
+      <div class="navlinks">
+        <a href="#studio">استودیو</a>
+        <a href="#feats">امکانات</a>
+        <button type="button" class="keybtn" id="keybtn"><span class="kdot"></span><span id="keylabel">کلید Gemini</span></button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="inner">
+    <section class="hero">
+      <div class="pill reveal"><span class="dot"></span>با کلید Gemini خودت <b>رایگان</b></div>
+      <h1 class="reveal d1"><span class="l1">یک جمله بنویس،</span><span class="l2">پرده بالا می‌رود.</span></h1>
+      <p class="lede reveal d2">موضوعت را بگو؛ <strong>پرده</strong> ساختار، متن و طراحی اسلایدها را با هم می‌چیند. هر جا را خواستی در گفتگو عوض کن و با یک کلیک PPTX بگیر.</p>
+
+      <form class="console reveal d3" id="form" autocomplete="off">
+        <div class="console-in">
+          <div class="inputrow">
+            <span class="spark" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>
+            </span>
+            <label for="topic" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">موضوع ارائه</label>
+            <input id="topic" name="topic" type="text" maxlength="120" placeholder="">
+            <button class="go" id="go" type="submit">ساختن ارائه <kbd>Enter</kbd></button>
+          </div>
+
+          <div class="opts">
+            <div class="opt"><div class="opt-l">تعداد اسلاید <span id="cntv">۸</span></div>
+              <div class="chips" data-group="count">
+                <button type="button" class="chip num" data-v="6">۶</button>
+                <button type="button" class="chip num" data-v="8" aria-pressed="true">۸</button>
+                <button type="button" class="chip num" data-v="10">۱۰</button>
+                <button type="button" class="chip num" data-v="12">۱۲</button>
+                <button type="button" class="chip num" data-v="15">۱۵</button>
+              </div></div>
+            <div class="opt"><div class="opt-l">لحن</div>
+              <div class="chips" data-group="tone">
+                <button type="button" class="chip" data-v="pro" aria-pressed="true">رسمی</button>
+                <button type="button" class="chip" data-v="story">روایی</button>
+                <button type="button" class="chip" data-v="sales">متقاعدکننده</button>
+                <button type="button" class="chip" data-v="edu">آموزشی</button>
+              </div></div>
+            <div class="opt"><div class="opt-l">زبان</div>
+              <div class="chips" data-group="lang">
+                <button type="button" class="chip" data-v="fa" aria-pressed="true">فارسی</button>
+                <button type="button" class="chip" data-v="en">English</button>
+              </div></div>
+            <div class="opt"><div class="opt-l">عمق محتوا</div>
+              <div class="chips" data-group="depth">
+                <button type="button" class="chip" data-v="brief">فشرده</button>
+                <button type="button" class="chip" data-v="mid" aria-pressed="true">متعادل</button>
+                <button type="button" class="chip" data-v="deep">مفصل</button>
+              </div></div>
+          </div>
+          <div class="hint">
+            <span>نمونه: <button type="button" class="ex">بازاریابی محتوا برای کافه‌ها</button> · <button type="button" class="ex">چرخه‌ی آب برای کلاس پنجم</button></span>
+            <span>ساخت هر ارائه حدود ۱۵ ثانیه</span>
+          </div>
+        </div>
+      </form>
+
+
+      <div class="ribbon reveal d4">
+        <div><b>۴<em>–</em>۱۵</b><small>اسلاید در هر ارائه</small></div>
+        <div><b>PPTX<em>·</em>PDF</b><small>خروجی قابل ویرایش</small></div>
+        <div><b>FA<em>·</em>EN</b><small>فارسی و انگلیسی</small></div>
+      </div>
+    </section>
+
+    <section class="studio reveal d5" id="studio">
+      <div class="sec-h">
+        <div><div class="eyebrow">Studio</div><h2>ساختار، سپس پرده‌ها</h2></div>
+        <div class="steps" id="steps">
+          <div class="step on"><i>۱</i>موضوع</div>
+          <div class="step on"><i>۲</i>ساختار</div>
+          <div class="step on"><i>۳</i>اسلایدها</div>
+        </div>
+      </div>
+      <div class="board">
+        <aside class="panel outline">
+          <div style="display:flex;justify-content:space-between;align-items:center"><h3>طرح کلی</h3><span class="meta" id="olmeta"></span></div>
+          <ol class="ol" id="ol"></ol>
+        </aside>
+        <div class="panel main">
+          <div class="deck-h">
+            <div><h3><span id="decktitle"></span><span class="badge" id="sample">نمونه</span></h3><span class="meta" id="deckmeta"></span></div>
+            <div class="exports">
+              <button type="button" class="xbtn" id="xpptx">↓ PPTX</button>
+              <button type="button" class="xbtn" id="xpdf">↓ PDF</button>
+            </div>
+          </div>
+          <div class="view" id="view" tabindex="0" aria-label="پیش‌نمایش اسلاید؛ با کلیدهای جهت جابه‌جا شوید">
+            <div class="sxbox" id="viewbox"></div>
+            <div class="err" id="err" hidden role="alert"><div><b>ارائه ساخته نشد</b><p id="errmsg"></p><small id="errdetail" dir="ltr"></small><div class="erract"><button type="button" class="send" id="errretry">دوباره امتحان کن</button><button type="button" class="undo" id="errkey">بررسی کلید</button></div></div></div>
+            <div class="busy" id="busy" hidden><div><span class="ring2"></span><span id="busytext">در حال ساخت…</span><small class="timer" id="timer">0.0s</small></div></div>
+          </div>
+          <div class="vrow"><div class="notes" id="notes"></div><div class="vnav"><button type="button" id="next" aria-label="اسلاید بعد">‹</button><button type="button" id="prev" aria-label="اسلاید قبل">›</button></div></div>
+          <div class="strip" id="strip"></div>
+          <form class="chat" id="chat" autocomplete="off">
+            <button type="button" class="undo" id="undo" disabled title="بازگشت به نسخه‌ی قبل">↶ بازگشت</button>
+            <label for="instr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">درخواست ویرایش</label>
+            <input id="instr" maxlength="500" placeholder="ویرایش با گفتگو: مثلاً «اسلاید ۳ را نمودار کن»">
+            <button class="send" id="send" type="submit">اعمال</button>
+          </form>
+          <div class="sugg" id="sugg">
+            <button type="button">لحن را صمیمی‌تر کن</button>
+            <button type="button">یک اسلاید مقایسه اضافه کن</button>
+            <button type="button">جمله‌ها را کوتاه‌تر کن</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="feats" id="feats">
+      <div class="feat">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+        <h4>راست‌چین واقعی</h4>
+        <p>چیدمان، اعداد و فونت فارسی از اول درست ساخته می‌شوند؛ نه ترجمه‌ی یک قالب انگلیسی.</p>
+        <span class="tag">RTL · فونت وزیر</span>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/></svg></div>
+        <h4>ویرایش در گفتگو</h4>
+        <p>بگو «اسلاید چهار را کوتاه‌تر کن» یا «یک نمودار مقایسه اضافه کن»؛ همان‌جا عوض می‌شود.</p>
+        <span class="tag">بدون کشیدن و رها کردن</span>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <h4>فایل واقعی پاورپوینت</h4>
+        <p>هر متن، شکل و نمودار در PowerPoint و Keynote قابل ویرایش می‌ماند. عکس صفحه تحویل نمی‌گیری.</p>
+        <span class="tag">16:9 · 4:3</span>
+      </div>
+    </section>
+
+    <footer>
+      <span>پرده — ساخت ارائه با هوش مصنوعی</span>
+      <span class="mono">v2.0 · ۱۴۰۵</span>
+    </footer>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<div class="dlg" id="keydlg" hidden role="dialog" aria-modal="true" aria-labelledby="keyttl">
+  <form class="dlg-in" id="keyform" dir="rtl" autocomplete="off">
+    <h3 id="keyttl">کلید Gemini</h3>
+    <p>پرده مستقیم از مرورگر تو به Gemini وصل می‌شود. کلید فقط در همین مرورگر ذخیره می‌شود و به هیچ سروری فرستاده نمی‌شود، جز خود گوگل.</p>
+    <label for="keyin">کلید API</label>
+    <div class="keyrow"><input id="keyin" type="password" dir="ltr" spellcheck="false" placeholder="کلید را اینجا بچسبان"><button type="button" class="undo" id="keyshow">نمایش</button></div>
+    <div class="keymsg" id="keymsg" role="alert"></div>
+    <p class="small">کلید رایگان را از <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> بگیر.</p>
+    <div class="dlg-act"><button class="send" type="submit">ذخیره</button><button type="button" class="undo" id="keytest">تست کلید</button><button type="button" class="undo" id="keycancel">انصراف</button><button type="button" class="undo danger" id="keyclear" hidden>پاک کردن کلید</button></div>
+  </form>
+</div>
+<div id="pdfstage" aria-hidden="true"></div>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js" defer></script>
+<script src="gemini.js" defer></script>
+<script src="slides.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>
